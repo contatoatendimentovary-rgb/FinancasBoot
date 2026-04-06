@@ -1,0 +1,16 @@
+[
+  {
+    "usuario": "Henrique_25",
+    "senha": "$2b$10$TN0ZgjrFDmSU1Zd96.fuRON3YdKQHjlJFo/noqXS/LCIEhVvKc6YO",
+    "email": "contatoatendimentovary@gmail.com",
+    "verificado": false,
+    "codigo": 192212,
+    "codigoExpira": 1775430746557
+  },
+  {
+    "usuario": "Henrique.26",
+    "senha": "$2b$10$VdtloTRttIrgXoMQtM0Ov.gUEuOXnj8wznTlEBwhMRCUa4XDI/PyC",
+    "email": "contatoatendimentovary@gmail.com",
+    "verificado": true
+  }
+]

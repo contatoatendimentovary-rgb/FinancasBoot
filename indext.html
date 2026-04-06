@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Controle de Gastos</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 12px 20px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      width: 200px;
+    }
+
+    button {
+      background: #3b82f6;
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    #total {
+      margin-top: 15px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    canvas {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>💰 Controle de Gastos</h1>
+
+<!-- INPUT -->
+<div class="card">
+  <input id="inputGasto" placeholder="Ex: gastei 50 no mercado">
+  <button onclick="enviarGasto()">Adicionar</button>
+</div>
+
+<!-- FILTRO -->
+<div class="card">
+  <button onclick="mesAnterior()">⬅️</button>
+  <span id="mesAtualTexto"></span>
+  <button onclick="proximoMes()">➡️</button>
+</div>
+
+<!-- GRÁFICO -->
+<canvas id="grafico" width="300" height="300"></canvas>
+
+<!-- TOTAL -->
+<div id="total">Total: R$ 0,00</div>
+
+<script>
+
+let chart;
+let mesAtual = new Date().getMonth();
+let anoAtual = new Date().getFullYear();
+
+// 🚀 BUSCAR DADOS (SEM CACHE)
+async function buscarDados() {
+  const res = await fetch("http://localhost:3000/dados?t=" + new Date().getTime());
+  return await res.json();
+}
+
+// 🚀 ENVIAR GASTO
+async function enviarGasto() {
+  const input = document.getElementById("inputGasto");
+  const mensagem = input.value;
+
+  if (!mensagem) return alert("Digite algo!");
+
+  await fetch("http://localhost:3000/ia", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ mensagem })
+  });
+
+  input.value = "";
+
+  setTimeout(() => {
+    carregar();
+  }, 300);
+}
+
+// 🧠 CLASSIFICADOR
+function categorizar(desc) {
+  desc = desc.toLowerCase();
+
+  if (desc.includes("mercado") || desc.includes("comida") || desc.includes("restaurante"))
+    return "Alimentação 🍔";
+
+  if (desc.includes("uber") || desc.includes("transporte") || desc.includes("ônibus"))
+    return "Transporte 🚗";
+
+  if (desc.includes("cinema") || desc.includes("lazer") || desc.includes("netflix"))
+    return "Lazer 🎮";
+
+  return "Outros 💸";
+}
+
+// 🚀 FUNÇÃO PRINCIPAL
+async function carregar() {
+
+  const meses = [
+    "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+    "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+  ];
+
+  document.getElementById("mesAtualTexto").innerText =
+    meses[mesAtual] + " / " + anoAtual;
+
+  const gastos = await buscarDados();
+
+  console.log("🔥 Dados recebidos:", gastos);
+
+  const gastosMes = gastos.filter(g => {
+    const d = new Date(g.data);
+    return d.getMonth() === mesAtual &&
+           d.getFullYear() === anoAtual;
+  });
+
+  const categorias = {};
+
+  gastosMes.forEach(g => {
+    const cat = categorizar(g.descricao);
+    categorias[cat] = (categorias[cat] || 0) + g.valor;
+  });
+
+  let labels = Object.keys(categorias);
+  let data = Object.values(categorias);
+
+  if (labels.length === 0) {
+    labels = ["Sem dados"];
+    data = [1];
+  }
+
+  const total = data.reduce((a, b) => a + b, 0);
+
+  document.getElementById("total").innerText =
+    "Total: R$ " + total.toFixed(2);
+
+  const cores = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7"];
+
+  // 💥 RECRIA O GRÁFICO (GARANTIA TOTAL)
+  if (chart) {
+    chart.destroy();
+  }
+
+  const ctx = document.getElementById("grafico").getContext("2d");
+
+  chart = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: cores
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          labels: {
+            color: "white"
+          }
+        }
+      }
+    }
+  });
+}
+
+// 🔄 TROCA DE MÊS
+function mesAnterior() {
+  mesAtual--;
+  if (mesAtual < 0) {
+    mesAtual = 11;
+    anoAtual--;
+  }
+  carregar();
+}
+
+function proximoMes() {
+  mesAtual++;
+  if (mesAtual > 11) {
+    mesAtual = 0;
+    anoAtual++;
+  }
+  carregar();
+}
+
+// 🔁 AUTO ATUALIZAÇÃO
+setInterval(carregar, 5000);
+
+// START
+carregar();
+
+</script>
+
+</body>
+</html>
