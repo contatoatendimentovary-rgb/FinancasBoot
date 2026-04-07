@@ -14,9 +14,9 @@ Você é um consultor financeiro profissional.
 Analise os dados:
 ${JSON.stringify(dados)}
 
-Responda em português, de forma clara:
+Responda em português de forma clara:
 
-- Hábitos financeiros
+- Como estão os hábitos financeiros
 - Onde cortar gastos
 - Sugestão de investimento
 `;
@@ -41,13 +41,21 @@ Responda em português, de forma clara:
 
     const data = await response.json();
 
-    console.log("RESPOSTA COMPLETA:", JSON.stringify(data, null, 2));
+    // 🔥 LOG COMPLETO PRA DEBUG
+    console.log("RESPOSTA GEMINI:", JSON.stringify(data, null, 2));
 
-    // 🔥 EXTRAÇÃO FLEXÍVEL (resolve o problema)
-    let texto = "⚠️ Não foi possível interpretar a resposta da IA.";
+    // 🔴 MOSTRAR ERRO REAL DA API
+    if (data.error) {
+      return res.json({
+        resposta: "❌ Erro da API: " + data.error.message
+      });
+    }
+
+    // 🔥 EXTRAÇÃO FLEXÍVEL
+    let texto = "⚠️ IA sem resposta.";
 
     if (data.candidates && data.candidates.length > 0) {
-      const parts = data.candidates[0].content?.parts;
+      const parts = data.candidates[0]?.content?.parts;
 
       if (parts && parts.length > 0) {
         texto = parts.map(p => p.text).join("\n");
@@ -57,11 +65,14 @@ Responda em português, de forma clara:
     res.json({ resposta: texto });
 
   } catch (err) {
-    console.log("ERRO:", err);
-    res.json({ resposta: "❌ Erro ao conectar com IA." });
+    console.log("ERRO GERAL:", err);
+
+    res.json({
+      resposta: "❌ Erro ao conectar com IA."
+    });
   }
 });
 
 app.listen(3000, () => {
-  console.log("Servidor rodando");
+  console.log("Servidor rodando na porta 3000");
 });
