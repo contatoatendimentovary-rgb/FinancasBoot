@@ -1,21 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Finanças</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <input id="texto" placeholder="Digite aqui..." />
+  <h2>Controle Financeiro</h2>
+
+  <input id="texto" placeholder="Digite: recebi 1000 ou gastei 50" />
   <button onclick="processar()">Registrar</button>
 
-  <h3>Receita: <span id="receita"></span></h3>
-  <h3>Despesa: <span id="despesa"></span></h3>
-  <h3>Saldo: <span id="saldo"></span></h3>
+  <h3>Receita: <span id="receita">0</span></h3>
+  <h3>Despesa: <span id="despesa">0</span></h3>
+  <h3>Saldo: <span id="saldo">0</span></h3>
 
   <canvas id="grafico"></canvas>
 
+  <h3>Receitas</h3>
   <div id="listaReceitas"></div>
+
+  <h3>Despesas</h3>
   <div id="listaDespesas"></div>
 
   <script src="app.js"></script>
