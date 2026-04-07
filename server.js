@@ -1,27 +1,31 @@
 import express from "express";
 
 const app = express();
+
+// Middleware
 app.use(express.json());
 app.use(express.static("public"));
 
+// Rota da IA
 app.post("/api/ia", async (req, res) => {
   const { dados } = req.body;
 
   const prompt = `
-Você é um consultor financeiro.
+Você é um consultor financeiro profissional.
 
-Analise os dados:
+Analise os dados abaixo:
 ${JSON.stringify(dados)}
 
-Responda:
-- Como estão os hábitos financeiros
-- Onde cortar gastos
-- Sugestão de investimento
+Responda de forma clara e organizada:
+
+1. Como estão os hábitos financeiros
+2. Onde cortar gastos
+3. Sugestão de investimento
 `;
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: {
@@ -39,15 +43,36 @@ Responda:
 
     const data = await response.json();
 
-    const texto =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Erro ao analisar com IA.";
+    console.log("RESPOSTA GEMINI:", JSON.stringify(data, null, 2));
+
+    // Validação forte (evita erro 500)
+    if (
+      !data ||
+      !data.candidates ||
+      !data.candidates[0] ||
+      !data.candidates[0].content ||
+      !data.candidates[0].content.parts ||
+      !data.candidates[0].content.parts[0]
+    ) {
+      return res.json({
+        resposta: "⚠️ A IA não conseguiu analisar os dados. Tente novamente."
+      });
+    }
+
+    const texto = data.candidates[0].content.parts[0].text;
 
     res.json({ resposta: texto });
 
   } catch (err) {
-    res.json({ resposta: "Erro ao conectar com IA." });
+    console.log("ERRO IA:", err);
+
+    res.json({
+      resposta: "❌ Erro ao conectar com IA. Verifique sua API ou tente novamente."
+    });
   }
 });
 
-app.listen(3000, () => console.log("Servidor rodando"));
+// Servidor
+app.listen(3000, () => {
+  console.log("Servidor rodando na porta 3000");
+});
