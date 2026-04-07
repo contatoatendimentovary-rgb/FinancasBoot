@@ -2,25 +2,23 @@ import express from "express";
 
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(express.static("public"));
 
-// Rota da IA
 app.post("/api/ia", async (req, res) => {
   const { dados } = req.body;
 
   const prompt = `
 Você é um consultor financeiro profissional.
 
-Analise os dados abaixo:
+Analise os dados:
 ${JSON.stringify(dados)}
 
-Responda de forma clara e organizada:
+Responda em português, de forma clara:
 
-1. Como estão os hábitos financeiros
-2. Onde cortar gastos
-3. Sugestão de investimento
+- Hábitos financeiros
+- Onde cortar gastos
+- Sugestão de investimento
 `;
 
   try {
@@ -43,36 +41,27 @@ Responda de forma clara e organizada:
 
     const data = await response.json();
 
-    console.log("RESPOSTA GEMINI:", JSON.stringify(data, null, 2));
+    console.log("RESPOSTA COMPLETA:", JSON.stringify(data, null, 2));
 
-    // Validação forte (evita erro 500)
-    if (
-      !data ||
-      !data.candidates ||
-      !data.candidates[0] ||
-      !data.candidates[0].content ||
-      !data.candidates[0].content.parts ||
-      !data.candidates[0].content.parts[0]
-    ) {
-      return res.json({
-        resposta: "⚠️ A IA não conseguiu analisar os dados. Tente novamente."
-      });
+    // 🔥 EXTRAÇÃO FLEXÍVEL (resolve o problema)
+    let texto = "⚠️ Não foi possível interpretar a resposta da IA.";
+
+    if (data.candidates && data.candidates.length > 0) {
+      const parts = data.candidates[0].content?.parts;
+
+      if (parts && parts.length > 0) {
+        texto = parts.map(p => p.text).join("\n");
+      }
     }
-
-    const texto = data.candidates[0].content.parts[0].text;
 
     res.json({ resposta: texto });
 
   } catch (err) {
-    console.log("ERRO IA:", err);
-
-    res.json({
-      resposta: "❌ Erro ao conectar com IA. Verifique sua API ou tente novamente."
-    });
+    console.log("ERRO:", err);
+    res.json({ resposta: "❌ Erro ao conectar com IA." });
   }
 });
 
-// Servidor
 app.listen(3000, () => {
-  console.log("Servidor rodando na porta 3000");
+  console.log("Servidor rodando");
 });
