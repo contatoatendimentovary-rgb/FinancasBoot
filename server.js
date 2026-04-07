@@ -1,70 +1,58 @@
-import express from "express";
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ resposta: "Método não permitido" });
+  }
 
-const app = express();
-
-app.use(express.json());
-app.use(express.static("public"));
-
-app.post("/api/ia", async (req, res) => {
   const { dados } = req.body;
 
   const prompt = `
-Você é um consultor financeiro profissional.
+Você é um consultor financeiro.
 
-Analise os dados:
+Analise:
 ${JSON.stringify(dados)}
 
-Responda em português de forma clara:
-
-- Como estão os hábitos financeiros
-- Onde cortar gastos
-- Sugestão de investimento
+Responda:
+- hábitos financeiros
+- onde cortar gastos
+- sugestão de investimento
 `;
 
   try {
     const response = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
-              parts: [{ text: prompt }]
-            }
-          ]
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
         })
       }
     );
 
     const data = await response.json();
 
-    // 🔥 LOG COMPLETO PRA DEBUG
-    console.log("RESPOSTA GEMINI:", JSON.stringify(data, null, 2));
-
-    // 🔴 MOSTRAR ERRO REAL DA API
     if (data.error) {
-      return res.json({
-        resposta: "❌ Erro da API: " + data.error.message
+      return res.status(200).json({
+        resposta: "Erro da IA: " + data.error.message
       });
     }
 
-    // 🔥 EXTRAÇÃO FLEXÍVEL
-    let texto = "⚠️ IA sem resposta.";
+    let texto = "Sem resposta da IA.";
 
-    if (data.candidates && data.candidates.length > 0) {
+    if (data.candidates) {
       const parts = data.candidates[0]?.content?.parts;
-
-      if (parts && parts.length > 0) {
+      if (parts) {
         texto = parts.map(p => p.text).join("\n");
       }
     }
 
-    res.json({ resposta: texto });
+    res.status(200).json({ resposta: texto });
 
   } catch (err) {
-    console.log("ERRO GERAL:", err);
-
-    res.json({
-      resposta: "❌ Erro ao conectar com IA."
+    res.status(200).json({
+      resposta: "Erro ao conectar com IA."
     });
   }
-});
-
-app.listen(3000, () => {
-  console.log("Servidor rodando na porta 3000");
-});
+}
