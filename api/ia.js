@@ -3,61 +3,37 @@ export default async function handler(req, res) {
     return res.status(405).json({ resposta: "Método não permitido" });
   }
 
-  const { dados } = req.body;
-
-  const prompt = `
-Você é um consultor financeiro.
-
-Analise:
-${JSON.stringify(dados)}
-
-Responda de forma simples:
-- Como estão os hábitos financeiros
-- Onde melhorar
-- Sugestão de investimento
-`;
-
   try {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": process.env.GEMINI_API_KEY
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }]
-            }
-          ]
-        })
-      }
-    );
+    const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": process.env.GEMINI_API_KEY
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: "Dê uma dica financeira simples." }]
+          }
+        ]
+      })
+    });
 
     const data = await response.json();
 
-    if (data.error) {
+    if (!data.candidates) {
       return res.status(200).json({
-        resposta: "Erro da IA: " + data.error.message
+        resposta: "Erro real da API: " + JSON.stringify(data)
       });
     }
 
-    let texto = "Sem resposta da IA.";
-
-    if (data.candidates && data.candidates.length > 0) {
-      const parts = data.candidates[0]?.content?.parts;
-      if (parts) {
-        texto = parts.map(p => p.text).join("\n");
-      }
-    }
+    const texto = data.candidates[0].content.parts[0].text;
 
     res.status(200).json({ resposta: texto });
 
   } catch (err) {
     res.status(200).json({
-      resposta: "Erro ao conectar com IA."
+      resposta: "Erro ao conectar API"
     });
   }
 }
