@@ -11,10 +11,10 @@ Você é um consultor financeiro.
 Analise:
 ${JSON.stringify(dados)}
 
-Responda:
-- hábitos financeiros
-- onde cortar gastos
-- sugestão de investimento
+Responda de forma simples:
+- Como estão os hábitos financeiros
+- Onde melhorar
+- Sugestão de investimento
 `;
 
   try {
