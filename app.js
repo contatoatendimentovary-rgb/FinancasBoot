@@ -1,3 +1,5 @@
+alert("JS carregado");
+
 let dados = JSON.parse(localStorage.getItem("dados")) || [];
 
 function salvar() {
