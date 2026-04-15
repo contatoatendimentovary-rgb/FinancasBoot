@@ -1,30 +1,110 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Finanças</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finanças PRO</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Chart -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background:#0f172a;
+      color:#fff;
+      font-family:Arial;
+      padding:15px;
+      max-width:500px;
+      margin:auto;
+    }
+
+    h2 {
+      text-align:center;
+      font-size:22px;
+    }
+
+    input, button, select {
+      width:100%;
+      padding:14px;
+      margin-top:10px;
+      border-radius:12px;
+      border:none;
+      font-size:16px;
+    }
+
+    button {
+      background:#22c55e;
+      color:white;
+      font-weight:bold;
+    }
+
+    .card {
+      background:#1e293b;
+      padding:15px;
+      border-radius:15px;
+      margin-top:12px;
+    }
+
+    .flex {
+      display:flex;
+      justify-content:space-between;
+      font-size:14px;
+    }
+
+    .green {color:#22c55e;}
+    .red {color:#ef4444;}
+
+    canvas {
+      margin-top:20px;
+      max-height:300px;
+    }
+  </style>
 </head>
+
 <body>
 
-  <h2>Controle Financeiro</h2>
+  <h2>💰 Finanças PRO</h2>
 
-  <input id="texto" placeholder="Digite: recebi 1000 ou gastei 50" />
+  <input id="texto" placeholder="Ex: gastei 50 no mercado" />
   <button onclick="processar()">Registrar</button>
 
-  <h3>Receita: <span id="receita">0</span></h3>
-  <h3>Despesa: <span id="despesa">0</span></h3>
-  <h3>Saldo: <span id="saldo">0</span></h3>
+  <select id="mesFiltro" onchange="render()">
+    <option value="todos">Todos</option>
+    <option value="3">Abril</option>
+    <option value="4">Maio</option>
+  </select>
+
+  <div class="card">
+    <div class="flex"><span>Receita</span><span id="receita">R$ 0</span></div>
+    <div class="flex"><span>Despesa</span><span id="despesa">R$ 0</span></div>
+    <div class="flex"><span>Saldo</span><span id="saldo">R$ 0</span></div>
+  </div>
 
   <canvas id="grafico"></canvas>
 
-  <h3>Receitas</h3>
-  <div id="listaReceitas"></div>
+  <div class="card">
+    <h3>📄 Extrato</h3>
+    <div id="extrato"></div>
+  </div>
 
-  <h3>Despesas</h3>
-  <div id="listaDespesas"></div>
+  <div class="card">
+    <h3>🧠 Sugestão</h3>
+    <div id="sugestao"></div>
+  </div>
 
-  <script src="app.js"></script>
+  <!-- APP -->
+  <script src="/app.js"></script>
+
+  <!-- SERVICE WORKER -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js');
+    }
+  </script>
 
 </body>
 </html>

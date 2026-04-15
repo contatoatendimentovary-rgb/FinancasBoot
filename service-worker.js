@@ -1,39 +1,20 @@
-const CACHE_NAME = "financas-cache-v1";
-const urlsToCache = [
-    "/",
-    "/index.html",
-    "/style.css",
-    "/script.js",
-    "/manifest.json",
-    "/icons/icon-192.png",
-    "/icons/icon-512.png"
-];
+const CACHE = "financas-cache-v1";
 
-// Instala e adiciona arquivos ao cache
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(urlsToCache);
-        })
-    );
+self.addEventListener("install", e => {
+  e.waitUntil(
+    caches.open(CACHE).then(cache => {
+      return cache.addAll([
+        "/",
+        "/index.html",
+        "/app.js",
+        "/manifest.json"
+      ]);
+    })
+  );
 });
 
-// Ativa e limpa caches antigos
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((keys) => {
-            return Promise.all(
-                keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-            );
-        })
-    );
-});
-
-// Intercepta requisições e retorna do cache se offline
-self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
-        })
-    );
+self.addEventListener("fetch", e => {
+  e.respondWith(
+    caches.match(e.request).then(res => res || fetch(e.request))
+  );
 });
