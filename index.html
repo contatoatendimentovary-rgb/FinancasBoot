@@ -1,110 +1,36 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finanças PRO</title>
+async function enviarGasto() {
+  const input = document.getElementById("inputGasto");
+  const mensagem = input.value;
+  if (!mensagem) return;
 
-  <!-- PWA -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#0f172a">
+  // Feedback visual para o usuário
+  document.getElementById("total").innerText = "🤖 Processando...";
 
-  <!-- Chart -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  try {
+    // 1. Envia para a IA categorizar
+    const resIA = await fetch("/api/server", { // Ajuste para sua rota de API na Vercel
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mensagem })
+    });
 
-  <style>
-    body {
-      background:#0f172a;
-      color:#fff;
-      font-family:Arial;
-      padding:15px;
-      max-width:500px;
-      margin:auto;
-    }
+    const dadoCategorizado = await resIA.json();
 
-    h2 {
-      text-align:center;
-      font-size:22px;
-    }
+    // 2. Envia o dado já pronto para o seu endpoint de salvar (o /add que você já tem)
+    await fetch("/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...dadoCategorizado,
+        data: new Date().toISOString() // Adiciona a data atual
+      })
+    });
 
-    input, button, select {
-      width:100%;
-      padding:14px;
-      margin-top:10px;
-      border-radius:12px;
-      border:none;
-      font-size:16px;
-    }
+    input.value = "";
+    carregar(); // Recarrega os gráficos e lista
 
-    button {
-      background:#22c55e;
-      color:white;
-      font-weight:bold;
-    }
-
-    .card {
-      background:#1e293b;
-      padding:15px;
-      border-radius:15px;
-      margin-top:12px;
-    }
-
-    .flex {
-      display:flex;
-      justify-content:space-between;
-      font-size:14px;
-    }
-
-    .green {color:#22c55e;}
-    .red {color:#ef4444;}
-
-    canvas {
-      margin-top:20px;
-      max-height:300px;
-    }
-  </style>
-</head>
-
-<body>
-
-  <h2>💰 Finanças PRO</h2>
-
-  <input id="texto" placeholder="Ex: gastei 50 no mercado" />
-  <button onclick="processar()">Registrar</button>
-
-  <select id="mesFiltro" onchange="render()">
-    <option value="todos">Todos</option>
-    <option value="3">Abril</option>
-    <option value="4">Maio</option>
-  </select>
-
-  <div class="card">
-    <div class="flex"><span>Receita</span><span id="receita">R$ 0</span></div>
-    <div class="flex"><span>Despesa</span><span id="despesa">R$ 0</span></div>
-    <div class="flex"><span>Saldo</span><span id="saldo">R$ 0</span></div>
-  </div>
-
-  <canvas id="grafico"></canvas>
-
-  <div class="card">
-    <h3>📄 Extrato</h3>
-    <div id="extrato"></div>
-  </div>
-
-  <div class="card">
-    <h3>🧠 Sugestão</h3>
-    <div id="sugestao"></div>
-  </div>
-
-  <!-- APP -->
-  <script src="/app.js"></script>
-
-  <!-- SERVICE WORKER -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js');
-    }
-  </script>
-
-</body>
-</html>
+  } catch (error) {
+    console.error("Erro:", error);
+    alert("Houve um erro ao processar sua transação.");
+  }
+}
