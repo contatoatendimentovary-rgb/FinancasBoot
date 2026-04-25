@@ -1,36 +1,73 @@
-async function enviarGasto() {
-  const input = document.getElementById("inputGasto");
-  const mensagem = input.value;
-  if (!mensagem) return;
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Finanças PRO AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-  // Feedback visual para o usuário
-  document.getElementById("total").innerText = "🤖 Processando...";
+<header>Finanças PRO AI</header>
 
-  try {
-    // 1. Envia para a IA categorizar
-    const resIA = await fetch("/api/server", { // Ajuste para sua rota de API na Vercel
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mensagem })
-    });
+<nav class="tabs-mobile">
+    <button class="tab-btn active" onclick="abrirAba(event, 'extrato')">📊 Extrato</button>
+    <button class="tab-btn" onclick="abrirAba(event, 'lancamento')">➕ Novo</button>
+    <button class="tab-btn" onclick="abrirAba(event, 'saude')">🏥 Saúde</button>
+</nav>
 
-    const dadoCategorizado = await resIA.json();
+<div class="container">
+    <section id="extrato" class="aba-content active">
+        <div class="card resumo-topo">
+            <div><small>Receitas</small><div id="receita" class="receita">R$ 0,00</div></div>
+            <div><small>Despesas</small><div id="despesa" class="despesa">R$ 0,00</div></div>
+            <div><small>Saldo</small><div id="saldo" style="font-weight: bold;">R$ 0,00</div></div>
+        </div>
+        
+        <div class="card">
+            <canvas id="grafico"></canvas>
+        </div>
 
-    // 2. Envia o dado já pronto para o seu endpoint de salvar (o /add que você já tem)
-    await fetch("/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...dadoCategorizado,
-        data: new Date().toISOString() // Adiciona a data atual
-      })
-    });
+        <div id="lista" class="historico-lista"></div>
+    </section>
 
-    input.value = "";
-    carregar(); // Recarrega os gráficos e lista
+    <section id="lancamento" class="aba-content">
+        <div class="card">
+            <h2 style="text-align: center; margin-bottom: 20px;">🤖 Inteligência Artificial</h2>
+            <p style="color: #94a3b8; font-size: 14px; text-align: center;">Diga o que aconteceu (ex: "Recebi 3500 de salário" ou "Gastei 50 no burger king")</p>
+            <input id="inputGasto" placeholder="O que você quer registrar?">
+            <button id="btnAnalisar" onclick="enviarGasto()">Analisar Transação</button>
+            <div id="iaStatus" style="margin-top: 15px; text-align: center; color: #3b82f6;"></div>
+        </div>
+    </section>
 
-  } catch (error) {
-    console.error("Erro:", error);
-    alert("Houve um erro ao processar sua transação.");
-  }
-}
+    <section id="saude" class="aba-content">
+        <div class="card">
+            <h2 style="margin-bottom: 15px;">Orçamento 50/30/20</h2>
+            
+            <div class="pote-progresso">
+                <div class="pote-label"><span>Essencial (50%)</span><span id="txt-fixo">R$ 0 / R$ 0</span></div>
+                <div class="barra-bg"><div id="bar-fixo" class="barra-fill blue"></div></div>
+            </div>
+
+            <div class="pote-progresso">
+                <div class="pote-label"><span>Lazer (30%)</span><span id="txt-lazer">R$ 0 / R$ 0</span></div>
+                <div class="barra-bg"><div id="bar-lazer" class="barra-fill purple"></div></div>
+            </div>
+
+            <div class="pote-progresso">
+                <div class="pote-label"><span>Investimento (20%)</span><span id="txt-invest">R$ 0 / R$ 0</span></div>
+                <div class="barra-bg"><div id="bar-invest" class="barra-fill green"></div></div>
+            </div>
+        </div>
+
+        <div class="ia-box" id="iaResumo">
+            🤖 Clique em Saúde para ver meu feedback estratégico!
+        </div>
+    </section>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
