@@ -1,21 +1,25 @@
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ resposta: "Método não permitido" });
-  }
+  if (req.method !== "POST") return res.status(405).end();
 
-  const { dados } = req.body;
+  const { mensagem } = req.body; 
 
   const prompt = `
-Você é um consultor financeiro.
-
-Analise:
-${JSON.stringify(dados)}
-
-Responda:
-- hábitos financeiros
-- onde cortar gastos
-- sugestão de investimento
-`;
+    Atue como um extrator de dados financeiros para o app Finanças PRO AI.
+    Analise a frase: "${mensagem}"
+    Responda APENAS um objeto JSON com:
+    {
+      "valor": número,
+      "descricao": "string curta",
+      "tipo": "receita" ou "despesa",
+      "categoria": "Alimentação", "Transporte", "Lazer", "Essencial" ou "Investimento",
+      "regra": "50", "30" ou "20"
+    }
+    Regras de Categoria:
+    - Mercado, Aluguel, Contas, Saúde = Essencial (50)
+    - Restaurantes, Cinema, Jogos, Streaming = Lazer (30)
+    - Aportes, Poupança, Ações = Investimento (20)
+    - Ganhos, Salário, Pix recebido = tipo "receita" e regra "0"
+  `;
 
   try {
     const response = await fetch(
@@ -27,37 +31,20 @@ Responda:
           "x-goog-api-key": process.env.GEMINI_API_KEY
         },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }]
-            }
-          ]
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { response_mime_type: "application/json" }
         })
       }
     );
 
     const data = await response.json();
+    const objetoFinanceiro = JSON.parse(data.candidates[0].content.parts[0].text);
 
-    if (data.error) {
-      return res.status(200).json({
-        resposta: "Erro da IA: " + data.error.message
-      });
-    }
-
-    let texto = "Sem resposta da IA.";
-
-    if (data.candidates && data.candidates.length > 0) {
-      const parts = data.candidates[0]?.content?.parts;
-      if (parts) {
-        texto = parts.map(p => p.text).join("\n");
-      }
-    }
-
-    res.status(200).json({ resposta: texto });
+    // IMPORTANTE: Aqui você deve chamar sua lógica de salvar no banco (ex: salvar no dados.json)
+    // Para este exemplo, estamos devolvendo o objeto para o front-end salvar
+    res.status(200).json(objetoFinanceiro);
 
   } catch (err) {
-    res.status(200).json({
-      resposta: "Erro ao conectar com IA."
-    });
+    res.status(500).json({ erro: "Erro ao processar com IA" });
   }
 }
