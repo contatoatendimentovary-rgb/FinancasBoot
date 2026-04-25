@@ -1,125 +1,108 @@
-// 🎯 Funções principais do app
+let chart;
 
-let grafico;
-
-// Exibir mês atual
-function mesAtual(){
-    const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-                   "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-    let hoje = new Date();
-    return meses[hoje.getMonth()] + "/" + hoje.getFullYear();
-}
-document.getElementById("mesAtual").innerText = mesAtual();
-
-// Trocar aba Resumo / Extrato
-function trocarTab(tab){
-    document.getElementById('resumoTab').style.display = tab === 'resumo' ? 'block':'none';
-    document.getElementById('extratoTab').style.display = tab === 'extrato' ? 'block':'none';
-
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    event.target.classList.add('active');
+// Controle de Abas
+function abrirAba(event, nomeAba) {
+    document.querySelectorAll('.aba-content').forEach(a => a.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    document.getElementById(nomeAba).classList.add('active');
+    event.currentTarget.classList.add('active');
+    if(nomeAba === 'extrato' || nomeAba === 'saude') carregar();
 }
 
-// Interpretar texto do input
-function interpretarTexto(texto){
-    texto = texto.toLowerCase();
-    let valor = parseFloat(texto.match(/\d+/));
-    let tipo = "despesa";
+// Enviar para a IA
+async function enviarGasto() {
+    const input = document.getElementById("inputGasto");
+    const status = document.getElementById("iaStatus");
+    const msg = input.value;
+    if (!msg) return;
 
-    if(texto.includes("ganhei") || texto.includes("recebi") || texto.includes("salario") || texto.includes("salário")){
-        tipo = "receita";
+    status.innerText = "🤖 Processando transação...";
+    
+    try {
+        const res = await fetch("/api/server", { // Rota da sua API no server.js
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mensagem: msg })
+        });
+        
+        const resultado = await res.json();
+        
+        // Salvando no seu backend (endpoint /add que você já possui)
+        await fetch("/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...resultado, data: new Date() })
+        });
+
+        status.innerText = "✅ Adicionado com sucesso!";
+        input.value = "";
+        setTimeout(() => { abrirAba({currentTarget: document.querySelector('.tab-btn')}, 'extrato') }, 1000);
+
+    } catch (e) {
+        status.innerText = "❌ Erro ao processar.";
     }
-
-    let categoria = "Outros";
-    if(texto.includes("mercado") || texto.includes("comida")) categoria = "Alimentação";
-    else if(texto.includes("uber") || texto.includes("gasolina")) categoria = "Transporte";
-    else if(texto.includes("cinema")) categoria = "Lazer";
-
-    return { valor, tipo, categoria, descricao:texto };
 }
 
-// Adicionar lançamento
-async function adicionar(){
-    let texto = document.getElementById('texto').value;
-    if(!texto) return;
+async function carregar() {
+    const res = await fetch("/dados");
+    const dados = await res.json();
 
-    let dados = interpretarTexto(texto);
+    let totalReceita = 0, totalDespesa = 0;
+    let categorias = { "Essencial": 0, "Lazer": 0, "Investimento": 0, "Outros": 0 };
 
-    await fetch('/add',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(dados)
-    });
-
-    document.getElementById('texto').value = "";
-    carregar();
-}
-
-// Deletar lançamento
-async function deletar(id){
-    await fetch('/delete/'+id,{method:'DELETE'});
-    carregar();
-}
-
-// Carregar dados e atualizar interface
-async function carregar(){
-    let res = await fetch('/dados');
-    let dados = await res.json();
-
-    let receita = 0;
-    let despesa = 0;
-    let categorias = {};
-
-    let lista = document.getElementById('lista');
+    const lista = document.getElementById("lista");
     lista.innerHTML = "";
 
-    dados.forEach(d=>{
-        if(d.tipo === "receita") receita += d.valor;
-        else despesa += d.valor;
-
-        if(!categorias[d.categoria]) categorias[d.categoria] = 0;
-        categorias[d.categoria] += d.valor;
+    dados.forEach(d => {
+        if(d.tipo === "receita") totalReceita += d.valor;
+        else {
+            totalDespesa += d.valor;
+            categorias[d.categoria] = (categorias[d.categoria] || 0) + d.valor;
+        }
 
         lista.innerHTML += `
-        <div class="item">
-            <span>${d.descricao}</span>
-            <span class="${d.tipo}">
-                ${d.valor}
-                <span class="delete" onclick="deletar(${d.id})">❌</span>
-            </span>
-        </div>`;
+            <div class="item">
+                <span>${d.descricao} <small style="color:#94a3b8">(${d.categoria})</small></span>
+                <span class="${d.tipo}">${d.tipo === 'receita' ? '+' : '-'} R$ ${d.valor.toFixed(2)}</span>
+            </div>`;
     });
 
-    document.getElementById('receita').innerText = receita;
-    document.getElementById('despesa').innerText = despesa;
-    document.getElementById('saldo').innerText = receita - despesa;
+    document.getElementById("receita").innerText = `R$ ${totalReceita.toFixed(2)}`;
+    document.getElementById("despesa").innerText = `R$ ${totalDespesa.toFixed(2)}`;
+    document.getElementById("saldo").innerText = `R$ ${(totalReceita - totalDespesa).toFixed(2)}`;
 
     atualizarGrafico(categorias);
-    gerarIA(receita, despesa, categorias);
+    atualizarSaude(totalReceita, categorias);
 }
 
-// Atualizar gráfico
-function atualizarGrafico(categorias){
-    if(grafico) grafico.destroy();
-
-    grafico = new Chart(document.getElementById('grafico'),{
-        type:'pie',
-        data:{
-            labels:Object.keys(categorias),
-            datasets:[{ data:Object.values(categorias), backgroundColor:['#2e7d32','#c62828','#f9a825','#1565c0','#6a1b9a'] }]
-        }
+function atualizarGrafico(cats) {
+    const ctx = document.getElementById('grafico').getContext('2d');
+    if(chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(cats),
+            datasets: [{ data: Object.values(cats), backgroundColor: ['#3b82f6', '#a855f7', '#22c55e', '#64748b'] }]
+        },
+        options: { plugins: { legend: { labels: { color: 'white' } } } }
     });
 }
 
-// Gerar análise da IA (simulada)
-function gerarIA(receita, despesa, categorias){
-    let maior = Object.keys(categorias).reduce((a,b)=> categorias[a]>categorias[b]?a:b, "Outros");
+function atualizarSaude(receita, cats) {
+    const metas = { fixo: receita * 0.5, lazer: receita * 0.3, invest: receita * 0.2 };
+    
+    configBarra("bar-fixo", "txt-fixo", cats["Essencial"] || 0, metas.fixo);
+    configBarra("bar-lazer", "txt-lazer", cats["Lazer"] || 0, metas.lazer);
+    configBarra("bar-invest", "txt-invest", cats["Investimento"] || 0, metas.invest);
 
-    let texto = despesa > receita ? `⚠️ Você está gastando mais do que ganha.` : `✅ Seu saldo está positivo.`;
-    texto += ` Maior gasto: ${maior}.`;
-
-    document.getElementById('iaResumo').innerText = "🤖 " + texto;
+    document.getElementById("iaResumo").innerHTML = `🤖 <b>Dica PRO:</b> ${receita > 0 ? 'Você tem R$ ' + metas.invest.toFixed(2) + ' recomendados para investir este mês.' : 'Aguardando receitas.'}`;
 }
 
-// Inicializa
+function configBarra(idBar, idTxt, atual, meta) {
+    const porc = Math.min((atual / meta) * 100, 100) || 0;
+    document.getElementById(idBar).style.width = porc + "%";
+    document.getElementById(idTxt).innerText = `R$ ${atual.toFixed(2)} / R$ ${meta.toFixed(2)}`;
+}
+
 carregar();
